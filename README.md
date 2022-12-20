@@ -1,10 +1,10 @@
 # FastAPI + SQLModel + Alembic
 
-FastAPI boilerplate that uses SQLAlchemy, Postgres, Alembic, and Docker.
+FastAPI Auth boilerplate that uses SQLAlchemy, Postgres, Alembic, and Docker.
 
 ## Want to use this project?
 
-Add missing environment varialbles to `.env` file in `fastapi` folder
+Add missing environment variables to `.env` file in `fastapi` folder
 
 ```sh
 MAILGUN_API_KEY=<mailgun-api-key>
