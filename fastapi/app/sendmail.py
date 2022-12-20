@@ -20,10 +20,10 @@ def send_mail(to, token, username, email=EMAIL, password=PASSWORD):
   <body>
     <div id="box">
       <h2>Hallo {username},</h2> 
-        <p> Bevor du die Seite nutzen kannst, klicke 
+        <p>Please click
             <a href="http://localhost:8000/verify/{token}">
-                hier
-            </a> um deine registrierung zu bestätigen
+                here
+            </a> to confirm your registration.
         </p>
       </form>
     </div>
@@ -69,15 +69,17 @@ def send_mail(to, token, username, email=EMAIL, password=PASSWORD):
         subtype="html",
     )
 
-    msg["Subject"] = "Bestätigung deiner Registrierung"
+    msg["Subject"] = "Confirm your registration"
     msg["From"] = email
     msg["To"] = to
 
-    # Send the message via our own SMTP server.
-    server = smtplib.SMTP("smtp.mailgun.org", 587)
-    server.login(email, password)
-    server.send_message(msg)
-    server.quit()
+    try:
+      server = smtplib.SMTP_SSL("smtp.mailgun.org", 465)
+      server.login(email, password)
+      server.send_message(msg)
+      server.quit()
+    except Exception as e:
+      print(f"Error sending email: {e}")
 
 
 # def send_mail(to, token, username, email=email, password=password):

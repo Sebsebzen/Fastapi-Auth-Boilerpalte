@@ -13,10 +13,9 @@ from typing import List, Optional
 from . import auth, crud, models, schemas, sendmail
 from .database import get_db, DBContext
 
-
 app = FastAPI()
-# app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# CORS
 origins = ["*"]
 
 app.add_middleware(
@@ -35,12 +34,24 @@ def docs():
 
 @app.post("/register")
 def register_user(user: schemas.UserRegister, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_username(db=db, username=user.username)
+    # check if email already exists
+    db_user = crud.get_user_by_email(db=db, email=user.email)
     if db_user:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Email already registered")
+    
+    # check if username already exists
+    db_user = crud.get_user_by_username(db=db, username=user.username)
+    if db_user:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Username already registered")
+    
+    # create new user
     db_user = crud.create_user(db=db, user=user)
+
+    # create verification token
     subject = {"username": db_user.username}
     token = auth.verification_security.create_access_token(subject=subject)
+
+    # send email
     sendmail.send_mail(to=db_user.email, token=token, username=db_user.username)
     return {
         "message": "Register successful, please check your email to activate your account",
@@ -59,7 +70,6 @@ def login_user(
         )
 
     if auth.verify_password(form_data.password, db_user.hashed_password):
-        # subject (actual payload) is any json-able python dict
         subject = {
             "username": db_user.username, 
             "role": db_user.role.value,
@@ -85,7 +95,6 @@ def login_user_with_cookies(
         )
 
     if auth.verify_password(form_data.password, db_user.hashed_password):
-        # subject (actual payload) is any json-able python dict
         subject = {
             "username": db_user.username, 
             "role": db_user.role.value,

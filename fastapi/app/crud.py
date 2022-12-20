@@ -9,6 +9,10 @@ def get_user_by_username(db: Session, username: str):
     user = db.query(models.UserModel).filter(models.UserModel.username == username).first()
     return user
 
+def get_user_by_email(db: Session, email: str):
+    user = db.query(models.UserModel).filter(models.UserModel.email == email).first()
+    return user
+
 # def is_admin(db: Session, username: str):
 #     user = get_user_by_username(db, username)
 #     if not user:
