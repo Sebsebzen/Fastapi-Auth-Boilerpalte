@@ -7,7 +7,8 @@ FastAPI Auth boilerplate that uses SQLAlchemy, Postgres, Alembic, and Docker.
 Add missing environment variables to `.env` file in `fastapi` folder
 
 ```sh
-MAILGUN_API_KEY=<mailgun-api-key>
+MAILGUN_EMAIL=<mailgun-email>
+MAILGUN_PASSWORD=<mailgun-password>
 ```
 
 then run

@@ -3,8 +3,8 @@ import smtplib
 from email.message import EmailMessage
 from fastapi import requests
 
-EMAIL = os.getenv("EMAIL")
-PASSWORD = os.getenv("PASSWORD")
+EMAIL = os.getenv("MAILGUN_EMAIL")
+PASSWORD = os.getenv("MAILGUN_PASSWORD")
 API_KEY = os.getenv("MAILGUN_API_KEY")
 
 
