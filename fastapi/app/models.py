@@ -13,3 +13,4 @@ class UserModel(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=False)
     role = Column(Enum(Roles), default=Roles.user.value)
+    verification_token = Column(String, nullable=True)

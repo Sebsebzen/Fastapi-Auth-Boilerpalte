@@ -3,6 +3,8 @@ from typing import Union, Any, Optional
 
 from datetime import datetime, timedelta
 import os
+import random
+
 from passlib.context import CryptContext
 
 from fastapi_jwt import (
@@ -15,6 +17,14 @@ from fastapi_jwt import (
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def create_pin():
+    nums =  '0123456789'
+    selects = random.sample(nums, 4)
+    random.shuffle(selects)
+    unique_code = ''.join(selects)
+    return unique_code
 
 
 # Read verification token from bearer header only

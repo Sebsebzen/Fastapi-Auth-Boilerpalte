@@ -2,7 +2,7 @@ from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv())
 
 from datetime import datetime, timedelta
-from fastapi import Depends, FastAPI, HTTPException, status, Response
+from fastapi import Depends, FastAPI, HTTPException, status, Response, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,24 +43,24 @@ def register_user(user: schemas.UserRegister, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_username(db=db, username=user.username)
     if db_user:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Username already registered")
-    
-    # create new user
-    db_user = crud.create_user(db=db, user=user)
 
     # create verification token
-    subject = {"username": db_user.username}
+    pin = auth.create_pin()
+    subject = {"username": user.username, "pin": pin}
     token = auth.verification_security.create_access_token(subject=subject)
 
+    # create new user
+    db_user = crud.create_user(db=db, user=user, token=token)
+
     # send email
-    sendmail.send_mail(to=db_user.email, token=token, username=db_user.username)
+    sendmail.send_mail(to=db_user.email, token=token, username=db_user.username, pin=pin)
     return {
         "message": "Register successful, please check your email to activate your account",
-        "token": token
         }
 
 
-@app.post('/login', response_model=schemas.Token)
-def login_user(
+@app.post('/login_token', response_model=schemas.Token)
+def login_user_with_bearer_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
     db_user = crud.get_user_by_username(db=db, username=form_data.username)
@@ -85,7 +85,7 @@ def login_user(
 
 
 @app.post('/login_cookie')
-def login_user_with_cookies(
+def login_user_with_cookie(
     response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
     db_user = crud.get_user_by_username(db=db, username=form_data.username)
@@ -114,14 +114,14 @@ def login_user_with_cookies(
 
 
 @app.post("/logout")
-def logout_unset_cookies(response: Response):
+def logout_and_unset_cookie(response: Response):
     auth.access_security.unset_access_cookie(response)
     auth.refresh_security.unset_refresh_cookie(response)
     return {"message": "Logged out successfully"}
 
 
 @app.post("/refresh", response_model=schemas.Token)
-def refresh(credentials = Depends(auth.get_credentials_refresh)):
+def refresh_bearer_token(credentials = Depends(auth.get_credentials_refresh)):
     # Update access/refresh tokens pair
     access_token = auth.access_security.create_access_token(subject=credentials.subject)
     refresh_token = auth.refresh_security.create_refresh_token(subject=credentials.subject, expires_delta=timedelta(days=2))
@@ -129,7 +129,7 @@ def refresh(credentials = Depends(auth.get_credentials_refresh)):
 
 
 @app.post("/refresh_cookie")
-def refresh_with_cookies(response: Response, credentials = Depends(auth.get_credentials_refresh)):
+def refresh_cookie(response: Response, credentials = Depends(auth.get_credentials_refresh)):
     # Update access/refresh tokens pair
     access_token = auth.access_security.create_access_token(subject=credentials.subject)
     refresh_token = auth.refresh_security.create_refresh_token(subject=credentials.subject, expires_delta=timedelta(days=2))
@@ -140,12 +140,33 @@ def refresh_with_cookies(response: Response, credentials = Depends(auth.get_cred
     return {"message": "Cookies refreshed"}
 
 
+@app.post("/resend_verification_email")
+def resend_verification_email(username: str = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    db_user = crud.get_user_by_username(db=db, username=username)
+    if db_user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User already activated")
+
+    # create new verification token
+    pin = auth.create_pin()
+    subject = {"username": db_user.username, "pin":pin}
+    token = auth.verification_security.create_access_token(subject=subject)
+
+    db_user.verification_token = token
+    db.commit()
+
+    # send email
+    sendmail.send_mail(to=db_user.email, token=token, username=db_user.username, pin=pin)
+    return {
+        "message": "Please check your email to activate your account"
+        }
+
+
 @app.get("/verify/{token}", response_class=HTMLResponse)
-def verify_user(token: str, db: Session = Depends(get_db)):
+def verify_user_with_link(token: str, db: Session = Depends(get_db)):
     # Decode verification token
     credentials = auth.verification_security._decode(token)
     if not credentials:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") 
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token or token expired") 
     
     db_user = crud.get_user_by_username(db, credentials['subject']['username'])
 
@@ -168,6 +189,37 @@ def verify_user(token: str, db: Session = Depends(get_db)):
     </html>
     """
 
+
+@app.post("/verify")
+def verify_current_user_with_pin(pin: str = Query(min_length=4, max_length=4), db: Session = Depends(get_db), username: str = Depends(auth.get_current_user)):
+    db_user = crud.get_user_by_username(db=db, username=username)
+    if db_user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User already activated")
+
+    verification = auth.verification_security._decode(db_user.verification_token)
+    if not verification:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid token or token expired")
+
+    if pin != verification['subject']["pin"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid pin")
+
+    db_user.is_active = True
+    db.commit()
+    return f"""
+    <html>
+        <head>
+            <title>Registration confirmed</title>
+        </head>
+        <body>
+            <h2>Successfully activated {db_user.username}!</h2>
+            <a href="https://test.com">
+                return
+            </a>
+        </body>
+    </html>
+    """
+
+
 @app.get("/user/me", response_model=schemas.UserPlain)
 def get_current_user(db: Session = Depends(get_db), username: str = Depends(auth.get_current_user)):
     db_user = crud.get_user_by_username(db=db, username=username)
@@ -186,6 +238,6 @@ def get_user_by_id(user_id: str, db: Session = Depends(get_db)):
     return db_user
 
 @app.get("/adminsonly", dependencies=[Depends(auth.check_admin)], response_model=List[Optional[schemas.UserDB]])
-def get_all_users_admin(db: Session = Depends(get_db)):
+def get_all_users_details(db: Session = Depends(get_db)):
     users = crud.get_users(db=db)
     return users

@@ -8,7 +8,7 @@ PASSWORD = os.getenv("PASSWORD")
 API_KEY = os.getenv("MAILGUN_API_KEY")
 
 
-def send_mail(to, token, username, email=EMAIL, password=PASSWORD):
+def send_mail(to, token, username, pin, email=EMAIL, password=PASSWORD):
     msg = EmailMessage()
     msg.add_alternative(
         f"""\
@@ -24,6 +24,8 @@ def send_mail(to, token, username, email=EMAIL, password=PASSWORD):
             <a href="http://localhost:8000/verify/{token}">
                 here
             </a> to confirm your registration.
+        </p>
+        <p>Or use the following pin when logged in: <b>{pin}</b>
         </p>
       </form>
     </div>
