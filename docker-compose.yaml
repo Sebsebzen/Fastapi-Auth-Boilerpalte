@@ -7,7 +7,7 @@ services:
     ports:
       - 8000:8000
     environment:
-      - SQLALCHEMY_DATABASE_URL=postgresql://test:test@db/fastapi-boilerplate
+      - SQLALCHEMY_DATABASE_URL=postgresql://test:test@db:5433/fastapi-boilerplate
       - SECRET_KEY=super-secret-key # Change this to a random string
     depends_on:
       - db
