@@ -10,7 +10,7 @@ Clone the repo
 https://github.com/Sebsebzen/Fastapi-Auth-Boilerpalte.git
 ```
 
-Add missing environment variables to `.env` file in `fastapi` folder
+Add missing environment variables to `.env` file in `fastapi` folder (optional)
 
 ```sh
 MAILGUN_EMAIL=<mailgun-email>
