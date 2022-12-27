@@ -39,3 +39,6 @@ Access API endpoints under
 ```sh
 http://localhost:8000/docs
 ```
+
+![Screenshot 2022-12-27 at 15 50 00](https://user-images.githubusercontent.com/6603152/209683236-9a54a038-6c08-483f-95dd-3d912fdc6686.png)
+
