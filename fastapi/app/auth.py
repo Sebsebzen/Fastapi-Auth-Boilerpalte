@@ -44,7 +44,8 @@ access_security = JwtAccessBearerCookie(
 # Read refresh token from bearer header and cookie (bearer priority)
 refresh_security = JwtRefreshBearerCookie(
     secret_key=SECRET_KEY, 
-    auto_error=True  # automatically raise HTTPException: HTTP_401_UNAUTHORIZED 
+    auto_error=True,  # automatically raise HTTPException: HTTP_401_UNAUTHORIZED 
+    access_expires_delta=timedelta(days=2)
 )
 
 

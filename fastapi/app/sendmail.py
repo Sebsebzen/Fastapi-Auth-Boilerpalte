@@ -2,6 +2,8 @@ import os
 import smtplib
 from email.message import EmailMessage
 from fastapi import requests
+import logging
+logging.getLogger('root')
 
 EMAIL = os.getenv("MAILGUN_EMAIL")
 PASSWORD = os.getenv("MAILGUN_PASSWORD")
@@ -76,12 +78,15 @@ def send_mail(to, token, username, pin, email=EMAIL, password=PASSWORD):
     msg["To"] = to
 
     try:
+      logging.info("Sending email...")
+      logging.info(f"To: {email}, PIN: {pin}")
       server = smtplib.SMTP_SSL("smtp.mailgun.org", 465)
       server.login(email, password)
       server.send_message(msg)
       server.quit()
+      logging.info("Email sent")
     except Exception as e:
-      print(f"Error sending email: {e}")
+     logging.info(f"Error sending email: {e}")
 
 
 # def send_mail(to, token, username, email=email, password=password):

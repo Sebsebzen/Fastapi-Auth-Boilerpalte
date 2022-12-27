@@ -6,14 +6,22 @@ from fastapi import Depends, FastAPI, HTTPException, status, Response, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+import logging
+import yaml
 
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from . import auth, crud, models, schemas, sendmail
 from .database import get_db, DBContext
+from .logging import config_str
+
 
 app = FastAPI()
+
+# Logging
+logging_config = yaml.safe_load(config_str)
+logging.config.dictConfig(logging_config)
 
 # CORS
 origins = ["*"]
@@ -48,7 +56,6 @@ def register_user(user: schemas.UserRegister, db: Session = Depends(get_db)):
     pin = auth.create_pin()
     subject = {"username": user.username, "pin": pin}
     token = auth.verification_security.create_access_token(subject=subject)
-
     # create new user
     db_user = crud.create_user(db=db, user=user, token=token)
 
@@ -124,7 +131,7 @@ def logout_and_unset_cookie(response: Response):
 def refresh_bearer_token(credentials = Depends(auth.get_credentials_refresh)):
     # Update access/refresh tokens pair
     access_token = auth.access_security.create_access_token(subject=credentials.subject)
-    refresh_token = auth.refresh_security.create_refresh_token(subject=credentials.subject, expires_delta=timedelta(days=2))
+    refresh_token = auth.refresh_security.create_refresh_token(subject=credentials.subject)
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
@@ -132,7 +139,7 @@ def refresh_bearer_token(credentials = Depends(auth.get_credentials_refresh)):
 def refresh_cookie(response: Response, credentials = Depends(auth.get_credentials_refresh)):
     # Update access/refresh tokens pair
     access_token = auth.access_security.create_access_token(subject=credentials.subject)
-    refresh_token = auth.refresh_security.create_refresh_token(subject=credentials.subject, expires_delta=timedelta(days=2))
+    refresh_token = auth.refresh_security.create_refresh_token(subject=credentials.subject)
 
     # Create access/refresh cookies
     auth.access_security.set_access_cookie(response, access_token)
@@ -198,7 +205,7 @@ def verify_current_user_with_pin(pin: str = Query(min_length=4, max_length=4), d
 
     verification = auth.verification_security._decode(db_user.verification_token)
     if not verification:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid token or token expired")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid pin or pin expired")
 
     if pin != verification['subject']["pin"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid pin")
