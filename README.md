@@ -6,6 +6,10 @@ FastAPI Auth boilerplate that uses SQLAlchemy, Postgres, Alembic, and Docker.
 
 Clone the repo
 
+```sh
+https://github.com/Sebsebzen/Fastapi-Auth-Boilerpalte.git
+```
+
 Add missing environment variables to `.env` file in `fastapi` folder
 
 ```sh
