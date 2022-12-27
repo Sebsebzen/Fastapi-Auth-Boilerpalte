@@ -79,7 +79,7 @@ def send_mail(to, token, username, pin, email=EMAIL, password=PASSWORD):
 
     try:
       logging.info("Sending email...")
-      logging.info(f"To: {email}, PIN: {pin}")
+      logging.info(f"To: {to}, PIN: {pin}")
       server = smtplib.SMTP_SSL("smtp.mailgun.org", 465)
       server.login(email, password)
       server.send_message(msg)
